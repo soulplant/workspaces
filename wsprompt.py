@@ -29,6 +29,11 @@ class WSPrompt(object):
         if no_args:
             self.print_workspaces()
             return (None, [])
+
+        if self._args[0] == ":":
+            self.print_subdirs()
+            return (None, [])
+
         index = self._parse_index(self._args[0])
 
         (subdir, i) = index
@@ -48,6 +53,11 @@ class WSPrompt(object):
         ws = Workspace.all(subdir)
         for i in range(len(ws)):
             print "%d: %s" % (i, ws[i].summary_line())
+
+    def print_subdirs(self):
+        subdirs = Workspace.all_subdirs()
+        for subdir in subdirs:
+            print subdir
 
     def print_usage(self):
         print "usage: li [index] [command] [args...]"

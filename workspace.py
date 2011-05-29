@@ -6,14 +6,24 @@ from tmux import Tmux
 class Workspace(object):
     WORKSPACE_DIR='.workspaces'
     @classmethod
-    def all(cls, dir=None):
+    def workspace_files_and_dirs(cls, dir=None):
         if dir:
             dir = os.path.join(Workspace.WORKSPACE_DIR, dir)
         else:
             dir = Workspace.WORKSPACE_DIR
-        files_and_dirs = glob.glob(os.path.join(os.path.expanduser('~'), dir, '*'))
+        return glob.glob(os.path.join(os.path.expanduser('~'), dir, '*'))
+
+    @classmethod
+    def all(cls, dir=None):
+        files_and_dirs = Workspace.workspace_files_and_dirs(dir)
         files = filter(os.path.isfile, files_and_dirs)
         return [Workspace(f) for f in files]
+
+    @classmethod
+    def all_subdirs(cls, dir=None):
+        files_and_dirs = Workspace.workspace_files_and_dirs(dir)
+        dirs = filter(os.path.isdir, files_and_dirs)
+        return [os.path.basename(dir) for dir in dirs]
         
     def __init__(self, filename, tmux = Tmux()):
         self._filename = filename
