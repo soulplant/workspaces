@@ -2,7 +2,7 @@
 
 import optparse
 import re
-from workspace import Workspace
+from workspace import Workspace, LastAccessedIndex
 
 class WSPrompt(object):
     def __init__(self, args, commands):
@@ -17,6 +17,8 @@ class WSPrompt(object):
         if ws is None:
             pass
         elif len(args) == 0:
+            index = LastAccessedIndex()
+            index.touch(ws)
             self._default_command.run(ws, args)
         elif args[0] in self._commands:
             self._commands[args[0]].run(ws, args)

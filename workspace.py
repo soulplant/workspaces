@@ -1,6 +1,7 @@
 import glob
 import os
 import re
+import time
 from tmux import Tmux
 
 class Workspace(object):
@@ -17,14 +18,16 @@ class Workspace(object):
     def all(cls, dir=None):
         files_and_dirs = Workspace.workspace_files_and_dirs(dir)
         files = filter(os.path.isfile, files_and_dirs)
-        return [Workspace(f) for f in files]
+        result = [Workspace(f) for f in files]
+        index = LastAccessedIndex()
+        return index.sort(result)
 
     @classmethod
     def all_subdirs(cls, dir=None):
         files_and_dirs = Workspace.workspace_files_and_dirs(dir)
         dirs = filter(os.path.isdir, files_and_dirs)
         return [os.path.basename(dir) for dir in dirs]
-        
+
     def __init__(self, filename, tmux = Tmux()):
         self._filename = filename
         self._tmux = tmux
@@ -34,6 +37,9 @@ class Workspace(object):
 
     def name(self):
         return os.path.basename(self._filename)
+
+    def filename(self):
+        return self._filename
 
     def path(self):
         with open(self._filename) as f:
@@ -66,3 +72,50 @@ class Workspace(object):
     def add_note(self, note):
         with open(self._filename, 'a') as f:
             f.write('# ' + note + "\n")
+
+# TODO Put this in its own file.
+class LastAccessedIndex(object):
+    INDEX_FILENAME = os.path.join(
+                os.path.expanduser('~'),
+                Workspace.WORKSPACE_DIR,
+                '.order')
+
+    def __init__(self):
+        self._index = self._parse_index(LastAccessedIndex.INDEX_FILENAME)
+
+    def _parse_index(self, filename):
+        if not os.path.isfile(filename):
+            return {}
+        result = {}
+        with open(filename) as f:
+            for line in f.readlines():
+                name, number = line.rstrip().split(':')
+                result[name] = int(number)
+        return result
+
+    def now(self):
+        return int(time.time())
+
+    def sort(self, workspaces):
+        def lookup(x):
+            if self._index.has_key(x.filename()):
+                return self._index[x.filename()]
+            else:
+                return 0
+
+        def compare(x, y):
+            return -cmp(lookup(x), lookup(y))
+
+        result = workspaces[:]
+        result.sort(compare)
+        return result
+
+    def touch(self, workspace):
+        self._index[workspace.filename()] = self.now()
+        self.save()
+
+    def save(self):
+        with open(LastAccessedIndex.INDEX_FILENAME, 'w') as f:
+            lines = ["%s:%d\n" % (key, self._index[key])
+                     for key in self._index.keys()]
+            f.writelines(lines)
